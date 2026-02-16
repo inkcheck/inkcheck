@@ -1,0 +1,27 @@
+# Binaries
+/inkcheck
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# GoReleaser
+dist/
+
+# OS
+.DS_Store
+Thumbs.db

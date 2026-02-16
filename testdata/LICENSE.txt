@@ -1,0 +1,21 @@
+Test Data Licensing
+===================
+
+This directory contains test data for the inkcheck project.
+
+All test files in this directory are either:
+
+1. Public Domain (CC0 1.0 Universal)
+   - Files created specifically for testing
+   - Dedicated to the public domain
+   - No copyright or related rights reserved
+
+2. Public Domain (expired copyright)
+   - Historical texts from Project Gutenberg
+   - Copyright has expired
+
+3. Creative Commons Attribution-ShareAlike (CC BY-SA)
+   - Simple Wikipedia content
+   - Must provide attribution when redistributed
+
+See individual files for specific licensing information.
