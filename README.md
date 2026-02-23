@@ -1,16 +1,16 @@
 # Inkcheck
 
 A Go library and CLI tool for analyzing text through structural, rhetorical,
-and semantic analysis. It computes 21 metrics that measure writing variability,
+and semantic analysis. It computes 27 metrics that measure writing variability,
 argument structure, and topic coherence.
 
 ## Features
 
-- **21 metrics** across three categories: structural, rhetorical, and semantic
+- **27 metrics** across three categories: structural, rhetorical, and semantic
 - **Heuristic-first** approach using POS tagging, keyword matching, and
-  statistical variance — no ML models required for 17 of 21 metrics
-- **Word2vec semantic analysis** for topic coherence, redundancy, and
-  information novelty (4 metrics)
+  statistical variance — no ML models required for 22 of 27 metrics
+- **Word2vec semantic analysis** for topic coherence, redundancy,
+  information novelty, and emotional tone (5 metrics)
 - **Library and CLI** for use in Go programs or from the command line
 - **Markdown-aware** text extraction strips headings, code, lists, and other
   non-prose elements before analysis
@@ -141,17 +141,18 @@ inkcheck model download
 
 ## Available Metrics
 
-### Structure (5 metrics)
+### Structure (6 metrics)
 
 | Metric | Output | Description |
 |--------|--------|-------------|
 | `paragraph_variance` | CV (float) | Coefficient of variation of paragraph word counts |
 | `sentence_length_variance` | CV (float) | CV of sentence word counts |
-| `sentence_opener_diversity` | 0-1 ratio | Ratio of unique sentence openers to total sentences |
+| `sentence_opener_diversity` | Structured | Unique opener ratio and Shannon entropy of opener distribution |
+| `sentence_type_distribution` | Structured | Counts of declarative/interrogative/imperative/exclamatory sentences and entropy |
 | `paragraph_position_analysis` | Structured | Opening/closing paragraph deviation from body mean |
 | `punctuation_profile` | Structured | Distribution of 8 punctuation types |
 
-### Rhetoric (12 metrics)
+### Rhetoric (16 metrics)
 
 | Metric | Output | Description |
 |--------|--------|-------------|
@@ -167,8 +168,12 @@ inkcheck model download
 | `audience_awareness` | Structured | Second-person pronouns, questions, jargon density |
 | `argument_structure` | Structured | Thesis-evidence-conclusion marker detection |
 | `tension_and_resolution` | Structured | Narrative arc from tension to resolution markers |
+| `stance_analysis` | Structured | Pronoun-based stance (reader-centric vs impersonal) |
+| `contraction_rate` | Structured | Count and rate of contractions |
+| `temporal_orientation` | Structured | Future modal, past tense, evidential, and aspiration densities |
+| `economy_analysis` | Structured | Wordy phrase density, average sentence length, subordination index |
 
-### Semantic (4 metrics)
+### Semantic (5 metrics)
 
 | Metric | Output | Description |
 |--------|--------|-------------|
@@ -176,6 +181,7 @@ inkcheck model download
 | `semantic_progression` | Structured | Topic drift rate between paragraphs |
 | `redundancy_detection` | Structured | Non-adjacent paragraph pairs above similarity threshold (default 0.90) |
 | `information_novelty` | Structured | Per-paragraph novelty relative to prior paragraphs |
+| `emotional_tone` | Structured | Valence and arousal scores via seed-word projection (Russell circumplex) |
 
 Semantic metrics require a word2vec model (~310 MB). Download it with:
 

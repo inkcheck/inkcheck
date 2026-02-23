@@ -7,19 +7,45 @@ import (
 	"github.com/inkcheck/shared"
 )
 
-func SentenceOpenerDiversity(cfg config.Config, text string) float64 {
+// SentenceOpenerDiversityResult holds both the ratio and entropy of sentence openers.
+type SentenceOpenerDiversityResult struct {
+	Ratio   float64 // distinct openers / total sentences (0–1)
+	Entropy float64 // Shannon entropy of opener distribution (bits)
+}
+
+// SentenceOpenerDiversity analyses the variety of sentence-opening patterns.
+// It returns both a simple ratio (unique/total) and Shannon entropy of the
+// opener frequency distribution for richer normalization options.
+func SentenceOpenerDiversity(cfg config.Config, text string) SentenceOpenerDiversityResult {
 	sentences := shared.SplitSentences(shared.ExtractProseText(text))
 	if len(sentences) == 0 {
-		return 0
+		return SentenceOpenerDiversityResult{}
 	}
-	seen := make(map[string]struct{})
+
+	freq := make(map[string]int)
 	for _, s := range sentences {
 		opener := extractOpener(s, cfg.OpenerWordCount)
 		if opener != "" {
-			seen[opener] = struct{}{}
+			freq[opener]++
 		}
 	}
-	return float64(len(seen)) / float64(len(sentences))
+
+	total := len(sentences)
+	distinct := len(freq)
+
+	ratio := float64(distinct) / float64(total)
+
+	// Shannon entropy of the opener frequency distribution
+	dist := make([]float64, 0, len(freq))
+	for _, count := range freq {
+		dist = append(dist, float64(count)/float64(total))
+	}
+	entropy := shared.Entropy(dist)
+
+	return SentenceOpenerDiversityResult{
+		Ratio:   ratio,
+		Entropy: entropy,
+	}
 }
 
 func extractOpener(text string, n int) string {

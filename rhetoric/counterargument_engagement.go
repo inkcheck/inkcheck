@@ -38,7 +38,7 @@ func CounterargumentEngagement(text string) CounterargumentResult {
 	total := 0
 
 	for _, phrase := range counterargumentPhrases {
-		n := countOccurrences(lower, phrase)
+		n := shared.CountOccurrences(lower, phrase)
 		if n > 0 {
 			found = append(found, phrase)
 			total += n

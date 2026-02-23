@@ -21,7 +21,8 @@ type StructureResult struct {
 	ParagraphVariance       float64
 	ParagraphLengths        []int
 	SentenceLengthVariance  float64
-	SentenceOpenerDiversity float64
+	SentenceOpenerDiversity structure.SentenceOpenerDiversityResult
+	SentenceTypeDistribution structure.SentenceTypeResult
 	ParagraphPosition       structure.ParagraphPositionResult
 	Punctuation             structure.PunctuationProfile
 }
@@ -40,6 +41,10 @@ type RhetoricResult struct {
 	AudienceAwareness       rhetoric.AudienceAwarenessResult
 	ArgumentStructure       rhetoric.ArgumentStructureResult
 	TensionAndResolution    rhetoric.TensionResolutionResult
+	Stance                  rhetoric.StanceResult
+	Contraction             rhetoric.ContractionResult
+	Temporal                rhetoric.TemporalResult
+	Economy                 rhetoric.EconomyResult
 }
 
 // SemanticResult holds all semantic metric outputs.
@@ -48,6 +53,7 @@ type SemanticResult struct {
 	SemanticProgression semantic.SemanticProgressionResult
 	Redundancy          semantic.RedundancyResult
 	InformationNovelty  semantic.InformationNoveltyCurveResult
+	EmotionalTone       semantic.EmotionalToneResult
 }
 
 // ReadabilityResult holds readability metric output.
@@ -77,19 +83,20 @@ func AnalyzeAll(cfg config.Config, text string, model *semantic.ModelManager) Re
 	}
 }
 
-// AnalyzeStructure runs only the 5 structural metrics.
+// AnalyzeStructure runs all structural metrics.
 func AnalyzeStructure(cfg config.Config, text string) StructureResult {
 	return StructureResult{
-		ParagraphVariance:       structure.ParagraphVariance(text),
-		ParagraphLengths:        structure.ParagraphLengths(text),
-		SentenceLengthVariance:  structure.SentenceLengthVariance(text),
-		SentenceOpenerDiversity: structure.SentenceOpenerDiversity(cfg, text),
-		ParagraphPosition:       structure.ParagraphPositionAnalysis(cfg, text),
-		Punctuation:             structure.PunctuationAnalysis(text),
+		ParagraphVariance:        structure.ParagraphVariance(text),
+		ParagraphLengths:         structure.ParagraphLengths(text),
+		SentenceLengthVariance:   structure.SentenceLengthVariance(text),
+		SentenceOpenerDiversity:  structure.SentenceOpenerDiversity(cfg, text),
+		SentenceTypeDistribution: structure.SentenceTypeDistribution(text),
+		ParagraphPosition:        structure.ParagraphPositionAnalysis(cfg, text),
+		Punctuation:              structure.PunctuationAnalysis(text),
 	}
 }
 
-// AnalyzeRhetoric runs only the 12 rhetorical metrics.
+// AnalyzeRhetoric runs all rhetorical metrics.
 func AnalyzeRhetoric(cfg config.Config, text string) RhetoricResult {
 	return RhetoricResult{
 		TransitionWordDensity:   rhetoric.TransitionWordDensity(cfg, text),
@@ -104,16 +111,21 @@ func AnalyzeRhetoric(cfg config.Config, text string) RhetoricResult {
 		AudienceAwareness:       rhetoric.AudienceAwareness(cfg, text),
 		ArgumentStructure:       rhetoric.ArgumentStructureCoherence(text),
 		TensionAndResolution:    rhetoric.TensionAndResolution(text),
+		Stance:                  rhetoric.StanceAnalysis(text),
+		Contraction:             rhetoric.ContractionRate(text),
+		Temporal:                rhetoric.TemporalOrientation(text),
+		Economy:                 rhetoric.EconomyAnalysis(text),
 	}
 }
 
-// AnalyzeSemantic runs only the 4 semantic metrics.
+// AnalyzeSemantic runs all semantic metrics.
 func AnalyzeSemantic(cfg config.Config, text string, model *semantic.ModelManager) SemanticResult {
 	return SemanticResult{
 		TopicCoherence:      semantic.TopicCoherence(cfg, model, text),
 		SemanticProgression: semantic.SemanticProgression(cfg, model, text),
 		Redundancy:          semantic.RedundancyDetection(cfg, model, text),
 		InformationNovelty:  semantic.InformationNoveltyCurve(cfg, model, text),
+		EmotionalTone:       semantic.EmotionalTone(cfg, model, text),
 	}
 }
 

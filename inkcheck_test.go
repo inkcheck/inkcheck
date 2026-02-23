@@ -139,8 +139,8 @@ func TestAnalyze_EdgeCases(t *testing.T) {
 		t.Errorf("sentence variance should be non-negative, got %v", result.Structure.SentenceLengthVariance)
 	}
 
-	if result.Structure.SentenceOpenerDiversity < 0 || result.Structure.SentenceOpenerDiversity > 1 {
-		t.Errorf("opener diversity should be 0-1, got %v", result.Structure.SentenceOpenerDiversity)
+	if result.Structure.SentenceOpenerDiversity.Ratio < 0 || result.Structure.SentenceOpenerDiversity.Ratio > 1 {
+		t.Errorf("opener diversity ratio should be 0-1, got %v", result.Structure.SentenceOpenerDiversity.Ratio)
 	}
 }
 
@@ -184,8 +184,8 @@ func TestAnalyzeStructure_Isolation(t *testing.T) {
 	if result.SentenceLengthVariance < 0 {
 		t.Error("sentence length variance should be non-negative")
 	}
-	if result.SentenceOpenerDiversity < 0 || result.SentenceOpenerDiversity > 1 {
-		t.Error("opener diversity should be between 0 and 1")
+	if result.SentenceOpenerDiversity.Ratio < 0 || result.SentenceOpenerDiversity.Ratio > 1 {
+		t.Error("opener diversity ratio should be between 0 and 1")
 	}
 }
 

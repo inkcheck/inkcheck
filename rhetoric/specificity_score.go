@@ -7,10 +7,18 @@ import (
 )
 
 type SpecificityResult struct {
-	Mean   float64
-	Range  float64
-	CV     float64
-	Scores []int
+	Mean         float64
+	Range        float64
+	CV           float64
+	Scores       []int
+	VagueDensity float64 // vague/abstract signal phrases per 100 words
+}
+
+// vagueSignals is the list of abstract or vague language patterns.
+var vagueSignals = []string{
+	"important", "significant", "crucial", "essential", "fundamental",
+	"effective", "various", "numerous", "overall", "thing", "stuff",
+	"etc", "and so on", "and so forth", "in some way", "somehow",
 }
 
 func SpecificityScore(text string) SpecificityResult {
@@ -25,7 +33,21 @@ func SpecificityScore(text string) SpecificityResult {
 		scores[i] = estimateSpecificity(s)
 	}
 
-	return buildSpecificityResult(scores)
+	// Count vague signals across the full prose text
+	lower := strings.ToLower(prose)
+	vagueCount := 0
+	for _, signal := range vagueSignals {
+		vagueCount += shared.CountOccurrences(lower, signal)
+	}
+	wordCount := shared.CountWords(prose)
+	vagueDensity := 0.0
+	if wordCount > 0 {
+		vagueDensity = float64(vagueCount) / float64(wordCount) * 100
+	}
+
+	result := buildSpecificityResult(scores)
+	result.VagueDensity = vagueDensity
+	return result
 }
 
 func buildSpecificityResult(scores []int) SpecificityResult {
@@ -86,9 +108,7 @@ func estimateSpecificity(sentence string) int {
 		score++
 	}
 
-	abstractSignals := []string{"important", "significant", "crucial", "essential",
-		"fundamental", "effective", "various", "numerous", "overall"}
-	for _, signal := range abstractSignals {
+	for _, signal := range vagueSignals {
 		if strings.Contains(lower, signal) {
 			score--
 			break

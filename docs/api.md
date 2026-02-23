@@ -18,12 +18,13 @@ type Result struct {
 }
 
 type StructureResult struct {
-    ParagraphVariance       float64
-    ParagraphLengths        []int
-    SentenceLengthVariance  float64
-    SentenceOpenerDiversity float64
-    ParagraphPosition       structure.ParagraphPositionResult
-    Punctuation             structure.PunctuationProfile
+    ParagraphVariance        float64
+    ParagraphLengths         []int
+    SentenceLengthVariance   float64
+    SentenceOpenerDiversity  structure.SentenceOpenerDiversityResult
+    SentenceTypeDistribution structure.SentenceTypeResult
+    ParagraphPosition        structure.ParagraphPositionResult
+    Punctuation              structure.PunctuationProfile
 }
 
 type RhetoricResult struct {
@@ -39,6 +40,10 @@ type RhetoricResult struct {
     AudienceAwareness       rhetoric.AudienceAwarenessResult
     ArgumentStructure       rhetoric.ArgumentStructureResult
     TensionAndResolution    rhetoric.TensionResolutionResult
+    Stance                  rhetoric.StanceResult
+    Contraction             rhetoric.ContractionResult
+    Temporal                rhetoric.TemporalResult
+    Economy                 rhetoric.EconomyResult
 }
 
 type SemanticResult struct {
@@ -46,6 +51,7 @@ type SemanticResult struct {
     SemanticProgression semantic.SemanticProgressionResult
     Redundancy          semantic.RedundancyResult
     InformationNovelty  semantic.InformationNoveltyCurveResult
+    EmotionalTone       semantic.EmotionalToneResult
 }
 ```
 
@@ -55,7 +61,7 @@ type SemanticResult struct {
 func Analyze(text string) Result
 ```
 
-Runs all structure and rhetoric metrics (17 total). Semantic metrics are left
+Runs all structure and rhetoric metrics (22 total). Semantic metrics are left
 empty. This is the simplest entry point — no model download required.
 
 ```go
@@ -70,7 +76,7 @@ fmt.Println(result.Rhetoric.Hedging.Density)
 func AnalyzeAll(text string, model *semantic.ModelManager) Result
 ```
 
-Runs all 21 metrics including semantic analysis. Requires a loaded
+Runs all 27 metrics including semantic analysis. Requires a loaded
 `ModelManager`.
 
 ```go
@@ -88,7 +94,7 @@ fmt.Println(result.Semantic.TopicCoherence.MeanSimilarity)
 func AnalyzeStructure(text string) StructureResult
 ```
 
-Runs only the 5 structural metrics.
+Runs all 6 structural metrics.
 
 ### AnalyzeRhetoric
 
@@ -96,7 +102,7 @@ Runs only the 5 structural metrics.
 func AnalyzeRhetoric(text string) RhetoricResult
 ```
 
-Runs only the 12 rhetorical metrics.
+Runs all 16 rhetorical metrics.
 
 ### AnalyzeSemantic
 
@@ -104,7 +110,7 @@ Runs only the 12 rhetorical metrics.
 func AnalyzeSemantic(text string, model *semantic.ModelManager) SemanticResult
 ```
 
-Runs only the 4 semantic metrics.
+Runs all 5 semantic metrics.
 
 ## Sub-packages
 
@@ -185,7 +191,7 @@ func Entropy(distribution []float64) float64
 
 ## structure
 
-Five structural metrics. All functions take markdown text as input.
+Six structural metrics. All functions take markdown text as input.
 
 ### ParagraphVariance
 
@@ -210,11 +216,38 @@ sentence lengths (e.g., clustering around 15-25 words).
 ### SentenceOpenerDiversity
 
 ```go
-func SentenceOpenerDiversity(text string) float64
+func SentenceOpenerDiversity(cfg config.Config, text string) SentenceOpenerDiversityResult
 ```
 
-Returns the ratio of unique sentence openers (first two words) to total
-sentences. A ratio of 1.0 means every sentence starts differently.
+```go
+type SentenceOpenerDiversityResult struct {
+    Ratio   float64 // distinct openers / total sentences (0–1)
+    Entropy float64 // Shannon entropy of opener distribution (bits)
+}
+```
+
+Returns both the unique-opener ratio and the Shannon entropy of the opener
+frequency distribution.
+
+### SentenceTypeDistribution
+
+```go
+func SentenceTypeDistribution(text string) SentenceTypeResult
+```
+
+```go
+type SentenceTypeResult struct {
+    Declarative   int
+    Interrogative int
+    Imperative    int
+    Exclamatory   int
+    Total         int
+    Entropy       float64 // Shannon entropy (bits); max ≈ 2.0
+}
+```
+
+Classifies each sentence as declarative, interrogative, imperative, or
+exclamatory and computes the Shannon entropy of the distribution.
 
 ### ParagraphPositionAnalysis
 
@@ -251,7 +284,7 @@ func (p PunctuationProfile) Total() int
 
 ## rhetoric
 
-Twelve rhetorical metrics. All functions take markdown text as input.
+Sixteen rhetorical metrics. All functions take markdown text as input.
 
 ### TransitionWordDensity
 
@@ -433,9 +466,88 @@ type TensionResolutionResult struct {
 }
 ```
 
+### StanceAnalysis
+
+```go
+func StanceAnalysis(text string) StanceResult
+```
+
+```go
+type StanceResult struct {
+    SecondPerson     int
+    FirstPlural      int
+    FirstSingular    int
+    ThirdImpersonal  int
+    TotalPronouns    int
+    ReaderCentricity float64 // weighted pronoun score / total words
+}
+```
+
+Analyses pronoun-based stance. `ReaderCentricity` uses weighted counts
+(you×1.0 + we×0.6 + I×0.4 + they/one×0.1) divided by total words.
+
+### ContractionRate
+
+```go
+func ContractionRate(text string) ContractionResult
+```
+
+```go
+type ContractionResult struct {
+    Count int
+    Rate  float64 // Count / total words (0.0–1.0)
+}
+```
+
+Counts contractions (e.g. "don't", "we're", "it's") and returns the rate
+per total words.
+
+### TemporalOrientation
+
+```go
+func TemporalOrientation(text string) TemporalResult
+```
+
+```go
+type TemporalResult struct {
+    FutureModalCount   int
+    PastTenseCount     int
+    EvidentialCount    int
+    AspirationCount    int
+    FutureModalDensity float64 // per 100 words
+    PastTenseDensity   float64 // per 100 words
+    EvidentialDensity  float64 // per 100 words
+    AspirationDensity  float64 // per 100 words
+}
+```
+
+Analyses the epistemic-temporal mode of the text: future modals, past-tense
+indicators, evidential phrases, and aspiration/intention phrases.
+
+### EconomyAnalysis
+
+```go
+func EconomyAnalysis(text string) EconomyResult
+```
+
+```go
+type EconomyResult struct {
+    AvgSentenceLength  float64 // mean words per sentence
+    WordyPhraseCount   int
+    WordyPhraseDensity float64 // wordy phrases per 100 words
+    WordsPerClause     float64 // mean words per clause (approximated)
+    ClauseCount        int
+    SubordinationIndex float64 // subordinating conjunctions per sentence
+}
+```
+
+Measures writing efficiency: detects wordy/redundant phrases, approximates
+clause count via punctuation and subordinating conjunctions, and computes
+average sentence length.
+
 ## semantic
 
-Four semantic metrics using word2vec embeddings. All functions take a
+Five semantic metrics using word2vec embeddings. All functions take a
 `*ModelManager` as the first parameter.
 
 ### ModelManager
@@ -508,3 +620,21 @@ type InformationNoveltyCurveResult struct {
     CV            float64
 }
 ```
+
+### EmotionalTone
+
+```go
+func EmotionalTone(cfg config.Config, m *ModelManager, text string) EmotionalToneResult
+```
+
+```go
+type EmotionalToneResult struct {
+    Valence      float64 // -1 (very negative) to +1 (very positive)
+    Arousal      float64 // -1 (very calm) to +1 (very excited/energetic)
+    CoveredWords int     // content words that had embeddings in the model
+}
+```
+
+Estimates valence and arousal using the Russell circumplex model. Projects
+content-word embeddings onto axes defined by positive/negative seed-word
+centroids. Returns zero result if the model is nil or no words matched.

@@ -41,8 +41,8 @@ func ClaimSupportRatio(text string) ClaimSupportResult {
 	claims, supports, neutral := 0, 0, 0
 	for _, s := range sentences {
 		lower := strings.ToLower(s)
-		isClaim := containsAny(lower, claimSignals)
-		isSupport := containsAny(lower, supportSignals)
+		isClaim := shared.ContainsAny(lower, claimSignals)
+		isSupport := shared.ContainsAny(lower, supportSignals)
 
 		switch {
 		case isClaim && !isSupport:
@@ -56,9 +56,17 @@ func ClaimSupportRatio(text string) ClaimSupportResult {
 		}
 	}
 
+	// Ratio: support / claim, capped at 5.0 to keep it bounded.
+	// Zero claims with some support → 1.0 (all evidence, no bare assertions).
+	// Zero claims and zero support → 0.0.
 	ratio := 0.0
 	if claims > 0 {
 		ratio = float64(supports) / float64(claims)
+		if ratio > 5.0 {
+			ratio = 5.0
+		}
+	} else if supports > 0 {
+		ratio = 1.0
 	}
 
 	return ClaimSupportResult{
@@ -68,13 +76,4 @@ func ClaimSupportRatio(text string) ClaimSupportResult {
 		Total:        len(sentences),
 		Ratio:        ratio,
 	}
-}
-
-func containsAny(text string, phrases []string) bool {
-	for _, p := range phrases {
-		if strings.Contains(text, p) {
-			return true
-		}
-	}
-	return false
 }

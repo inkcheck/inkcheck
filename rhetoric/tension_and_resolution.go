@@ -46,8 +46,8 @@ func TensionAndResolution(text string) TensionResolutionResult {
 
 	for i, p := range paragraphs {
 		lower := strings.ToLower(p)
-		hasTension := containsAny(lower, tensionPhrases)
-		hasResolution := containsAny(lower, resolutionPhrases)
+		hasTension := shared.ContainsAny(lower, tensionPhrases)
+		hasResolution := shared.ContainsAny(lower, resolutionPhrases)
 
 		if hasTension {
 			tensionCount++

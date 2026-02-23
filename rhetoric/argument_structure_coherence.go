@@ -54,14 +54,14 @@ func ArgumentStructureCoherence(text string) ArgumentStructureResult {
 		lower := strings.ToLower(p)
 		pos := float64(i) / (totalParas - 1)
 
-		if !hasThesis && containsAny(lower, thesisMarkers) {
+		if !hasThesis && shared.ContainsAny(lower, thesisMarkers) {
 			hasThesis = true
 			thesisPos = pos
 		}
-		if containsAny(lower, evidenceMarkers) {
+		if shared.ContainsAny(lower, evidenceMarkers) {
 			hasEvidence = true
 		}
-		if containsAny(lower, conclusionMarkers) {
+		if shared.ContainsAny(lower, conclusionMarkers) {
 			hasConclusion = true
 			conclusionPos = pos
 		}

@@ -3,7 +3,7 @@ package rhetoric
 import (
 	"strings"
 
-	"github.com/inkcheck/shared"
+	"github.com/inkcheck/shared" // CountOccurrences, ExtractProseText, CountWords
 )
 
 const (
@@ -13,12 +13,14 @@ const (
 )
 
 type HedgingResult struct {
-	Total      int
-	Density    float64
-	Distinct   int
-	Variety    float64
-	Categories HedgingCategories
-	Hedges     []HedgeInstance
+	Total                 int
+	Density               float64
+	Distinct              int
+	Variety               float64
+	Categories            HedgingCategories
+	Hedges                []HedgeInstance
+	AssertiveModalCount   int
+	AssertiveModalDensity float64 // assertive modals per 100 words
 }
 
 type HedgingCategories struct {
@@ -45,7 +47,7 @@ func HedgingAnalysis(text string) HedgingResult {
 	var hedges []HedgeInstance
 
 	for _, h := range hedgingPatterns {
-		n := countOccurrences(lower, h.phrase)
+		n := shared.CountOccurrences(lower, h.phrase)
 		for range n {
 			hedges = append(hedges, HedgeInstance{
 				Text:     h.phrase,
@@ -54,7 +56,17 @@ func HedgingAnalysis(text string) HedgingResult {
 		}
 	}
 
-	return buildHedgingResult(hedges, wordCount)
+	assertiveCount := 0
+	for _, m := range assertiveModals {
+		assertiveCount += shared.CountOccurrences(lower, m)
+	}
+
+	result := buildHedgingResult(hedges, wordCount)
+	result.AssertiveModalCount = assertiveCount
+	if wordCount > 0 {
+		result.AssertiveModalDensity = float64(assertiveCount) / float64(wordCount) * 100
+	}
+	return result
 }
 
 func buildHedgingResult(hedges []HedgeInstance, wordCount int) HedgingResult {
@@ -100,6 +112,11 @@ func buildHedgingResult(hedges []HedgeInstance, wordCount int) HedgingResult {
 type hedgePattern struct {
 	phrase   string
 	category string
+}
+
+// assertiveModals are confident/certain modal expressions, the opposite of hedges.
+var assertiveModals = []string{
+	"will", "shall", "must", "need to", "have to", "has to", "ought to",
 }
 
 var hedgingPatterns = []hedgePattern{

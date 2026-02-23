@@ -28,7 +28,7 @@ func TransitionWordDensity(cfg config.Config, text string) TransitionResult {
 	counts := make(map[string]int)
 
 	for _, phrase := range transitionPhrases {
-		n := countOccurrences(lower, phrase)
+		n := shared.CountOccurrences(lower, phrase)
 		if n > 0 {
 			counts[phrase] = n
 		}
@@ -58,4 +58,3 @@ func TransitionWordDensity(cfg config.Config, text string) TransitionResult {
 		Repeated: repeated,
 	}
 }
-

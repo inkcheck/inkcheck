@@ -22,10 +22,21 @@ Coefficient of variation of sentence word counts.
 ### sentence_opener_diversity
 
 Ratio of unique sentence openers (first two words, lowercased) to total
-sentences.
+sentences, plus the Shannon entropy of the opener frequency distribution.
 
-- **High diversity (0.8-1.0):** varied sentence openings
-- **Low diversity (below 0.7):** repetitive openings (e.g., "This", "The", "However", "It")
+- **High ratio (0.8-1.0):** varied sentence openings
+- **Low ratio (below 0.7):** repetitive openings (e.g., "This", "The", "However", "It")
+- **Entropy** provides a finer-grained measure that accounts for how evenly
+  openers are distributed, not just how many distinct ones exist
+
+### sentence_type_distribution
+
+Classifies sentences into four types: declarative, interrogative (ending in
+`?`), exclamatory (ending in `!`), and imperative (opening with a known
+imperative verb). Computes the Shannon entropy of the distribution.
+
+- **High entropy (near 2.0 bits):** diverse mix of sentence types
+- **Low entropy (near 0):** almost entirely declarative (typical of formal writing)
 
 ### paragraph_position_analysis
 
@@ -165,6 +176,55 @@ to detect narrative arc structure.
 - **Has arc:** tension markers appear before resolution markers
 - **Arc score:** 0-1 based on presence and ordering of markers
 
+### stance_analysis
+
+Counts pronouns across four categories — second-person (you/your),
+first-person plural (we/our), first-person singular (I/my), and
+third-person/impersonal (one/they/their) — and computes a
+`ReaderCentricity` score.
+
+Score formula: `(you×1.0 + we×0.6 + I×0.4 + they/one×0.1) / total_words`
+
+- **High reader-centricity:** writing directly addresses or includes the reader
+- **Near zero:** impersonal or institutional tone with few pronouns
+
+### contraction_rate
+
+Counts contractions (e.g. "don't", "we're", "it's", "gonna") against total
+words.
+
+- **High rate (above 0.03):** conversational, informal register
+- **Near zero:** formal writing that avoids contractions
+
+### temporal_orientation
+
+Analyses the epistemic-temporal mode of the text across four dimensions,
+all reported as densities per 100 words:
+
+| Field | What it captures |
+|-------|-----------------|
+| `FutureModalDensity` | "will", "shall", future-oriented phrases ("going to") |
+| `PastTenseDensity` | irregular past forms + regular `-ed` verbs |
+| `EvidentialDensity` | "according to", "research shows", "the data suggests" |
+| `AspirationDensity` | "we aim to", "our goal is", "we believe" |
+
+High future modal + aspiration density indicates prospective/aspirational
+writing; high past tense + evidential density indicates retrospective or
+evidence-driven writing.
+
+### economy_analysis
+
+Measures the conciseness and efficiency of writing:
+
+- **AvgSentenceLength:** mean words per sentence; above 25 often indicates
+  dense or bureaucratic prose
+- **WordyPhraseDensity:** redundant or verbose phrases ("in order to", "due to
+  the fact that", "at this point in time") per 100 words; above 1.0 is notable
+- **WordsPerClause:** approximated by dividing total words by an estimated
+  clause count (sentences + punctuation boundaries + subordinating conjunctions)
+- **SubordinationIndex:** subordinating conjunctions per sentence; high values
+  suggest complex, heavily qualified writing
+
 ## Semantic Metrics
 
 These metrics use word2vec embeddings to measure meaning-level patterns.
@@ -199,3 +259,23 @@ The first paragraph always gets novelty 1.0.
 - **Declining curve:** natural as topics build on prior content
 - **Flat low novelty:** text is repetitive
 - **Flat high novelty:** text lacks coherence
+
+### emotional_tone
+
+Estimates valence (positive/negative emotion) and arousal
+(excited/calm energy) using the Russell circumplex model. Content-word
+embeddings are projected onto axes defined by the centroids of positive and
+negative seed words for each dimension.
+
+Both scores are in [-1, +1]:
+
+| Score | Valence | Arousal |
+|-------|---------|---------|
+| +1 | very positive | very excited/energetic |
+| 0 | neutral | neutral |
+| -1 | very negative | very calm/passive |
+
+- **`CoveredWords`:** number of content words that had embeddings in the
+  model; low values (e.g. below 20% of total words) indicate the score
+  may be unreliable
+- Requires a loaded word2vec model; returns zero result if model is nil

@@ -28,6 +28,7 @@ var allMetricNames = []string{
 	"paragraph_variance",
 	"sentence_length_variance",
 	"sentence_opener_diversity",
+	"sentence_type_distribution",
 	"paragraph_position_analysis",
 	"punctuation_profile",
 	// rhetoric
@@ -43,6 +44,10 @@ var allMetricNames = []string{
 	"audience_awareness",
 	"argument_structure",
 	"tension_and_resolution",
+	"stance_analysis",
+	"contraction_rate",
+	"temporal_orientation",
+	"economy_analysis",
 	// readability
 	"readability",
 	// semantic
@@ -50,6 +55,7 @@ var allMetricNames = []string{
 	"semantic_progression",
 	"redundancy_detection",
 	"information_novelty",
+	"emotional_tone",
 }
 
 var semanticMetrics = map[string]bool{
@@ -57,6 +63,7 @@ var semanticMetrics = map[string]bool{
 	"semantic_progression": true,
 	"redundancy_detection": true,
 	"information_novelty":  true,
+	"emotional_tone":       true,
 }
 
 func main() {

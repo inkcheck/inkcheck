@@ -11,11 +11,13 @@ inkcheck/
 ├── shared/
 │   ├── text.go                  # Markdown extraction, sentence splitting, tokenization
 │   ├── stats.go                 # Mean, StdDev, CV, CosineSimilarity, Entropy
+│   ├── match.go                 # CountOccurrences and shared phrase-matching helpers
 │   └── token.go                 # Token type (Text, Tag, Label)
 ├── structure/
 │   ├── paragraph_variance.go
 │   ├── sentence_length_variance.go
 │   ├── sentence_opener_diversity.go
+│   ├── sentence_type.go
 │   ├── paragraph_position_analysis.go
 │   └── punctuation_profile.go
 ├── rhetoric/
@@ -31,13 +33,18 @@ inkcheck/
 │   ├── counterargument_engagement.go
 │   ├── audience_awareness.go
 │   ├── argument_structure_coherence.go
-│   └── tension_and_resolution.go
+│   ├── tension_and_resolution.go
+│   ├── stance.go
+│   ├── contraction.go
+│   ├── temporal.go
+│   └── economy.go
 ├── semantic/
 │   ├── model.go                 # Word2vec model download, cache, and loading
 │   ├── topic_coherence.go
 │   ├── semantic_progression.go
 │   ├── redundancy_detection.go
-│   └── information_novelty_curve.go
+│   ├── information_novelty_curve.go
+│   └── emotional_tone.go
 ├── go.mod
 └── go.sum
 ```
@@ -50,6 +57,7 @@ inkcheck/
 |------|---------|
 | `text.go` | Markdown parsing via goldmark, sentence splitting via prose, POS tokenization |
 | `stats.go` | Statistical functions: mean, standard deviation, CV, cosine similarity, entropy |
+| `match.go` | `CountOccurrences` and shared phrase-matching helpers used across packages |
 | `token.go` | `Token` struct with Text, Tag (POS), and Label (NER) fields |
 
 ### structure/
@@ -58,7 +66,8 @@ inkcheck/
 |------|---------|
 | `paragraph_variance.go` | CV of paragraph word counts |
 | `sentence_length_variance.go` | CV of sentence word counts |
-| `sentence_opener_diversity.go` | Unique opener ratio with first-two-word extraction |
+| `sentence_opener_diversity.go` | Unique opener ratio and entropy with first-two-word extraction |
+| `sentence_type.go` | Declarative/interrogative/imperative/exclamatory classification with entropy |
 | `paragraph_position_analysis.go` | Opening/closing vs body comparison |
 | `punctuation_profile.go` | 8-type punctuation counting with Variety() and Total() methods |
 
@@ -79,6 +88,10 @@ inkcheck/
 | `audience_awareness.go` | Second-person, questions, parentheticals, jargon density |
 | `argument_structure_coherence.go` | Thesis/evidence/conclusion marker position analysis |
 | `tension_and_resolution.go` | Tension/resolution marker tracking for narrative arc |
+| `stance.go` | Pronoun-based stance analysis with reader-centricity score |
+| `contraction.go` | Contraction count and rate per total words |
+| `temporal.go` | Future modal, past-tense, evidential, and aspiration density analysis |
+| `economy.go` | Wordy phrase detection, clause approximation, subordination index |
 
 ### semantic/
 
@@ -89,6 +102,7 @@ inkcheck/
 | `semantic_progression.go` | Drift rate (1 - similarity) between paragraphs |
 | `redundancy_detection.go` | Non-adjacent paragraph pair similarity above threshold |
 | `information_novelty_curve.go` | Per-paragraph novelty relative to all prior paragraphs |
+| `emotional_tone.go` | Valence and arousal via seed-word centroid projection (Russell circumplex) |
 
 ## Dependencies
 
@@ -117,7 +131,7 @@ consistent text preprocessing across all metrics.
 
 ### Heuristic-First
 
-The 17 non-semantic metrics use keyword matching, POS patterns, and statistical
+The 22 non-semantic metrics use keyword matching, POS patterns, and statistical
 variance rather than ML models. This makes them fast, deterministic, and easy
 to understand. Metrics that would benefit from deeper analysis are marked with
 `// TODO: LLM judge` comments.

@@ -1,8 +1,11 @@
-package rhetoric
+package shared
 
-// countOccurrences counts word-boundary-aware occurrences of phrase in text.
+import "strings"
+
+// CountOccurrences counts word-boundary-aware occurrences of phrase in text.
 // Both text and phrase should be lowercased before calling.
-func countOccurrences(text, phrase string) int {
+// Word boundaries are defined by ASCII letters, digits, and underscores.
+func CountOccurrences(text, phrase string) int {
 	count := 0
 	tLen := len(text)
 	pLen := len(phrase)
@@ -24,4 +27,14 @@ func countOccurrences(text, phrase string) int {
 
 func isWordChar(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
+}
+
+// ContainsAny reports whether text contains any of the given phrases.
+func ContainsAny(text string, phrases []string) bool {
+	for _, p := range phrases {
+		if strings.Contains(text, p) {
+			return true
+		}
+	}
+	return false
 }

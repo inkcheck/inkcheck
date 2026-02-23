@@ -69,6 +69,14 @@ func computeMetricValue(metric, text string, cfg config.Config, model *semantic.
 		return rhetoric.ArgumentStructureCoherence(text)
 	case "tension_and_resolution":
 		return rhetoric.TensionAndResolution(text)
+	case "stance_analysis":
+		return rhetoric.StanceAnalysis(text)
+	case "contraction_rate":
+		return rhetoric.ContractionRate(text)
+	case "temporal_orientation":
+		return rhetoric.TemporalOrientation(text)
+	case "economy_analysis":
+		return rhetoric.EconomyAnalysis(text)
 
 	// Semantic metrics
 	case "topic_coherence":
@@ -79,6 +87,8 @@ func computeMetricValue(metric, text string, cfg config.Config, model *semantic.
 		return semantic.RedundancyDetection(cfg, model, text)
 	case "information_novelty":
 		return semantic.InformationNoveltyCurve(cfg, model, text)
+	case "emotional_tone":
+		return semantic.EmotionalTone(cfg, model, text)
 
 	// Readability metric
 	case "readability":

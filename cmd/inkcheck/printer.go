@@ -19,6 +19,7 @@ var metricPrinters = map[string]printerFunc{
 	"paragraph_variance":          printParagraphVariance,
 	"sentence_length_variance":    printSentenceLengthVariance,
 	"sentence_opener_diversity":   printSentenceOpenerDiversity,
+	"sentence_type_distribution":  printSentenceTypeDistribution,
 	"paragraph_position_analysis": printParagraphPosition,
 	"punctuation_profile":         printPunctuationProfile,
 	"transition_word_density":     printTransitionWordDensity,
@@ -33,10 +34,15 @@ var metricPrinters = map[string]printerFunc{
 	"audience_awareness":          printAudienceAwareness,
 	"argument_structure":          printArgumentStructure,
 	"tension_and_resolution":      printTensionAndResolution,
+	"stance_analysis":             printStanceAnalysis,
+	"contraction_rate":            printContractionRate,
+	"temporal_orientation":        printTemporalOrientation,
+	"economy_analysis":            printEconomyAnalysis,
 	"topic_coherence":             printTopicCoherence,
 	"semantic_progression":        printSemanticProgression,
 	"redundancy_detection":        printRedundancyDetection,
 	"information_novelty":         printInformationNovelty,
+	"emotional_tone":              printEmotionalTone,
 	"readability":                 printReadability,
 }
 
@@ -65,7 +71,14 @@ func printSentenceLengthVariance(w io.Writer, label, text string, cfg config.Con
 }
 
 func printSentenceOpenerDiversity(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
-	fmt.Fprintf(w, "%s\t%.4f\n", label, structure.SentenceOpenerDiversity(cfg, text))
+	r := structure.SentenceOpenerDiversity(cfg, text)
+	fmt.Fprintf(w, "%s\tratio=%.4f\tentropy=%.4f\n", label, r.Ratio, r.Entropy)
+}
+
+func printSentenceTypeDistribution(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
+	r := structure.SentenceTypeDistribution(text)
+	fmt.Fprintf(w, "%s\tentropy=%.4f\t(declarative=%d interrogative=%d imperative=%d exclamatory=%d)\n",
+		label, r.Entropy, r.Declarative, r.Interrogative, r.Imperative, r.Exclamatory)
 }
 
 func printParagraphPosition(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
@@ -177,6 +190,29 @@ func printTensionAndResolution(w io.Writer, label, text string, cfg config.Confi
 		label, arc, r.ArcScore, r.TensionMarkers, r.ResolutionMarkers)
 }
 
+func printStanceAnalysis(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
+	r := rhetoric.StanceAnalysis(text)
+	fmt.Fprintf(w, "%s\treader_centricity=%.4f\t(2nd=%d 1pl=%d 1sg=%d 3imp=%d total=%d)\n",
+		label, r.ReaderCentricity, r.SecondPerson, r.FirstPlural, r.FirstSingular, r.ThirdImpersonal, r.TotalPronouns)
+}
+
+func printContractionRate(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
+	r := rhetoric.ContractionRate(text)
+	fmt.Fprintf(w, "%s\trate=%.4f\t(count=%d)\n", label, r.Rate, r.Count)
+}
+
+func printTemporalOrientation(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
+	r := rhetoric.TemporalOrientation(text)
+	fmt.Fprintf(w, "%s\tfuture=%.2f/100w\tpast=%.2f/100w\tevidential=%.2f/100w\taspiration=%.2f/100w\n",
+		label, r.FutureModalDensity, r.PastTenseDensity, r.EvidentialDensity, r.AspirationDensity)
+}
+
+func printEconomyAnalysis(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
+	r := rhetoric.EconomyAnalysis(text)
+	fmt.Fprintf(w, "%s\twordy=%.2f/100w\tavg_sent=%.1fw\twords_per_clause=%.1f\tsubord=%.2f/sent\n",
+		label, r.WordyPhraseDensity, r.AvgSentenceLength, r.WordsPerClause, r.SubordinationIndex)
+}
+
 func printTopicCoherence(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
 	r := semantic.TopicCoherence(cfg, model, text)
 	fmt.Fprintf(w, "%s\tmean=%.4f\tcv=%.4f\n", label, r.MeanSimilarity, r.CV)
@@ -199,6 +235,12 @@ func printRedundancyDetection(w io.Writer, label, text string, cfg config.Config
 func printInformationNovelty(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
 	r := semantic.InformationNoveltyCurve(cfg, model, text)
 	fmt.Fprintf(w, "%s\tmean=%.4f\tcv=%.4f\n", label, r.MeanNovelty, r.CV)
+}
+
+func printEmotionalTone(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {
+	r := semantic.EmotionalTone(cfg, model, text)
+	fmt.Fprintf(w, "%s\tvalence=%.4f\tarousal=%.4f\t(covered_words=%d)\n",
+		label, r.Valence, r.Arousal, r.CoveredWords)
 }
 
 func printReadability(w io.Writer, label, text string, cfg config.Config, model *semantic.ModelManager) {

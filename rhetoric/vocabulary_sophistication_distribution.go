@@ -18,6 +18,49 @@ type VocabSophisticationResult struct {
 	FormalWordCount int
 	FormalWordRatio float64
 	FormalWords     map[string]int
+	LexicalDensity  float64 // content words / total words
+	LowFreqWordRatio float64 // BandRatios[2] + [3] + [4] (6k+ rank or unknown)
+}
+
+// functionWords is a closed-class set used to identify content words.
+// Content words = total words − function words; drives LexicalDensity.
+var functionWords = map[string]bool{
+	// articles
+	"a": true, "an": true, "the": true,
+	// prepositions
+	"of": true, "in": true, "to": true, "for": true, "on": true, "with": true,
+	"at": true, "by": true, "from": true, "as": true, "into": true, "through": true,
+	"during": true, "before": true, "after": true, "above": true, "below": true,
+	"between": true, "out": true, "off": true, "over": true, "under": true,
+	"again": true, "further": true, "then": true, "once": true, "about": true,
+	"against": true, "along": true, "among": true, "around": true, "upon": true,
+	"without": true, "within": true, "throughout": true, "toward": true, "towards": true,
+	"onto": true, "except": true, "per": true, "via": true, "versus": true,
+	// conjunctions
+	"and": true, "but": true, "or": true, "nor": true, "so": true, "yet": true,
+	"if": true, "although": true, "because": true, "since": true, "while": true,
+	"whereas": true, "whether": true, "unless": true, "until": true, "when": true,
+	"where": true, "that": true, "which": true, "who": true, "whom": true,
+	"though": true, "even": true, "both": true, "either": true, "neither": true,
+	// auxiliary verbs
+	"is": true, "are": true, "was": true, "were": true, "be": true, "been": true,
+	"being": true, "have": true, "has": true, "had": true, "do": true, "does": true,
+	"did": true, "will": true, "would": true, "shall": true, "should": true,
+	"may": true, "might": true, "must": true, "can": true, "could": true,
+	// pronouns
+	"i": true, "me": true, "my": true, "myself": true,
+	"we": true, "us": true, "our": true, "ours": true, "ourselves": true,
+	"you": true, "your": true, "yours": true, "yourself": true, "yourselves": true,
+	"he": true, "him": true, "his": true, "himself": true,
+	"she": true, "her": true, "hers": true, "herself": true,
+	"it": true, "its": true, "itself": true,
+	"they": true, "them": true, "their": true, "theirs": true, "themselves": true,
+	"what": true, "this": true, "these": true, "those": true, "there": true,
+	// common adverbs
+	"not": true, "no": true, "very": true, "just": true, "more": true, "also": true,
+	"up": true, "down": true, "here": true, "how": true, "all": true, "some": true,
+	"any": true, "each": true, "few": true, "most": true, "other": true,
+	"such": true, "only": true, "same": true, "than": true, "too": true, "now": true,
 }
 
 var formalWords = map[string]bool{
@@ -108,6 +151,7 @@ func VocabSophisticationDistribution(cfg config.Config, text string) VocabSophis
 	var bandCounts [5]int
 	formalFound := make(map[string]int)
 	cleanedWords := make([]string, 0, len(words))
+	contentWordCount := 0
 
 	for _, w := range words {
 		lower := strings.ToLower(w)
@@ -121,6 +165,9 @@ func VocabSophisticationDistribution(cfg config.Config, text string) VocabSophis
 		bandCounts[band]++
 		if formalWords[cleaned] {
 			formalFound[cleaned]++
+		}
+		if !functionWords[cleaned] {
+			contentWordCount++
 		}
 	}
 
@@ -146,16 +193,21 @@ func VocabSophisticationDistribution(cfg config.Config, text string) VocabSophis
 
 	mattr := computeMATTR(cleanedWords, cfg.MATTRWindowSize)
 
+	lexicalDensity := float64(contentWordCount) / float64(totalWords)
+	lowFreqWordRatio := bandRatios[2] + bandRatios[3] + bandRatios[4]
+
 	return VocabSophisticationResult{
-		TotalWords:      totalWords,
-		UniqueWords:     len(unique),
-		TypeTokenRatio:  float64(len(unique)) / float64(totalWords),
-		MATTR:           mattr,
-		BandCounts:      bandCounts,
-		BandRatios:      bandRatios,
-		BandCV:          shared.CoefficientOfVariation(ratioValues),
-		FormalWordCount: formalCount,
-		FormalWordRatio: float64(formalCount) / float64(totalWords),
-		FormalWords:     formalFound,
+		TotalWords:       totalWords,
+		UniqueWords:      len(unique),
+		TypeTokenRatio:   float64(len(unique)) / float64(totalWords),
+		MATTR:            mattr,
+		BandCounts:       bandCounts,
+		BandRatios:       bandRatios,
+		BandCV:           shared.CoefficientOfVariation(ratioValues),
+		FormalWordCount:  formalCount,
+		FormalWordRatio:  float64(formalCount) / float64(totalWords),
+		FormalWords:      formalFound,
+		LexicalDensity:   lexicalDensity,
+		LowFreqWordRatio: lowFreqWordRatio,
 	}
 }
