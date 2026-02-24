@@ -76,18 +76,31 @@ func main() {
 		case "model":
 			handleModel(os.Args[2:])
 			return
+		case "analyse", "analyze":
+			runAnalyse(os.Args[2:])
+			return
+		case "signature":
+			runSignature(os.Args[2:])
+			return
 		}
 	}
 
+	// Default: analyse
+	runAnalyse(os.Args[1:])
+}
+
+func runAnalyse(cliArgs []string) {
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
 	}
 
-	metric := flag.String("m", "", "metric to compute (omit for all)")
-	format := flag.String("format", "text", "output format: text, json")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: inkcheck [-m <metric>] [-format <format>] [files or directories...]\n")
+	fs := flag.NewFlagSet("analyse", flag.ExitOnError)
+	metric := fs.String("m", "", "metric to compute (omit for all)")
+	format := fs.String("format", "text", "output format: text, json")
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: inkcheck [analyse] [-m <metric>] [-format <format>] [files or directories...]\n")
+		fmt.Fprintf(os.Stderr, "       inkcheck signature [-format <format>] [files or directories...]\n")
 		fmt.Fprintf(os.Stderr, "       inkcheck config init|list\n")
 		fmt.Fprintf(os.Stderr, "       inkcheck model download\n")
 		fmt.Fprintf(os.Stderr, "       command | inkcheck [-m <metric>]\n\n")
@@ -96,12 +109,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "  %s\n", name)
 		}
 		fmt.Fprintf(os.Stderr, "\nFlags:\n")
-		flag.PrintDefaults()
+		fs.PrintDefaults()
 	}
-	flag.Parse()
+	fs.Parse(cliArgs)
 
 	if *metric == "help" {
-		flag.Usage()
+		fs.Usage()
 		os.Exit(0)
 	}
 
@@ -120,48 +133,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	args := flag.Args()
+	args := fs.Args()
 
 	// Show usage if no files and no piped input.
 	if len(args) == 0 && isTerminal(os.Stdin) {
-		flag.Usage()
+		fs.Usage()
 		os.Exit(0)
 	}
 
 	// Load semantic model if needed.
 	var model *semantic.ModelManager
 	if needsSemanticModel(*metric) {
-		model, err = semantic.LoadModel(cfg)
-		if errors.Is(err, semantic.ErrModelNotFound) {
-			if !isTerminal(os.Stdin) {
-				fmt.Fprintf(os.Stderr, "Semantic model not found. Run 'inkcheck model download' first.\n")
-				os.Exit(1)
-			}
-			fmt.Fprintf(os.Stderr, "Semantic model not found. Download now? (~310 MB) [y/N] ")
-			reader := bufio.NewReader(os.Stdin)
-			answer, _ := reader.ReadString('\n')
-			answer = strings.TrimSpace(strings.ToLower(answer))
-			if answer != "y" && answer != "yes" {
-				fmt.Fprintf(os.Stderr, "Skipping. Run 'inkcheck model download' to download later.\n")
-				os.Exit(1)
-			}
-			if err := semantic.DownloadModel(cfg); err != nil {
-				fmt.Fprintf(os.Stderr, "Error downloading model: %v\n", err)
-				os.Exit(1)
-			}
-			model, err = semantic.LoadModel(cfg)
-		} else if errors.Is(err, semantic.ErrModelCorrupt) {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Run 'inkcheck model download --force' to re-download.\n")
-			os.Exit(1)
-		}
+		model, err = loadSemanticModel(cfg)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error loading semantic model: %v\n", err)
 			os.Exit(1)
 		}
 	}
 
-	if len(args) == 0 {
+	files := resolveInputs(args)
+	if files == nil {
+		// stdin mode
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
@@ -172,6 +163,133 @@ func main() {
 			os.Exit(1)
 		}
 		return
+	}
+
+	multiFile := len(files) > 1
+	for _, path := range files {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", path, err)
+			continue
+		}
+		prefix := ""
+		if multiFile {
+			prefix = path
+		}
+		if err := printMetricsWithFormat(outputFormat, os.Stdout, string(data), prefix, *metric, model, cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			continue
+		}
+	}
+}
+
+func runSignature(cliArgs []string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: %v\n", err)
+	}
+
+	fs := flag.NewFlagSet("signature", flag.ExitOnError)
+	format := fs.String("format", "text", "output format: text, json")
+	fs.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: inkcheck signature [-format <format>] [files or directories...]\n")
+		fmt.Fprintf(os.Stderr, "       command | inkcheck signature [-format <format>]\n\n")
+		fmt.Fprintf(os.Stderr, "Computes a 10-axis style signature for the text.\n\n")
+		fmt.Fprintf(os.Stderr, "Flags:\n")
+		fs.PrintDefaults()
+	}
+	fs.Parse(cliArgs)
+
+	outputFormat := OutputFormat(*format)
+	if outputFormat != FormatText && outputFormat != FormatJSON {
+		fmt.Fprintf(os.Stderr, "Error: unknown format %q (supported: text, json)\n", *format)
+		os.Exit(1)
+	}
+
+	args := fs.Args()
+
+	if len(args) == 0 && isTerminal(os.Stdin) {
+		fs.Usage()
+		os.Exit(0)
+	}
+
+	// Signature uses semantic metrics when available; skip if model not found.
+	var model *semantic.ModelManager
+	model, err = semantic.LoadModel(cfg)
+	if err != nil {
+		model = nil // signature works without semantic metrics
+	}
+
+	files := resolveInputs(args)
+	if files == nil {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
+			os.Exit(1)
+		}
+		if err := printSignatureWithFormat(outputFormat, os.Stdout, string(data), "", model, cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	multiFile := len(files) > 1
+	for _, path := range files {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", path, err)
+			continue
+		}
+		prefix := ""
+		if multiFile {
+			prefix = path
+		}
+		if err := printSignatureWithFormat(outputFormat, os.Stdout, string(data), prefix, model, cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			continue
+		}
+	}
+}
+
+// loadSemanticModel loads the semantic model, prompting for download if needed.
+func loadSemanticModel(cfg config.Config) (*semantic.ModelManager, error) {
+	model, err := semantic.LoadModel(cfg)
+	if errors.Is(err, semantic.ErrModelNotFound) {
+		if !isTerminal(os.Stdin) {
+			fmt.Fprintf(os.Stderr, "Semantic model not found. Run 'inkcheck model download' first.\n")
+			return nil, err
+		}
+		fmt.Fprintf(os.Stderr, "Semantic model not found. Download now? (~310 MB) [y/N] ")
+		reader := bufio.NewReader(os.Stdin)
+		answer, _ := reader.ReadString('\n')
+		answer = strings.TrimSpace(strings.ToLower(answer))
+		if answer != "y" && answer != "yes" {
+			fmt.Fprintf(os.Stderr, "Skipping. Run 'inkcheck model download' to download later.\n")
+			return nil, errors.New("model download declined")
+		}
+		if err := semantic.DownloadModel(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "Error downloading model: %v\n", err)
+			return nil, err
+		}
+		model, err = semantic.LoadModel(cfg)
+	} else if errors.Is(err, semantic.ErrModelCorrupt) {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Run 'inkcheck model download --force' to re-download.\n")
+		return nil, err
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading semantic model: %v\n", err)
+		return nil, err
+	}
+	return model, nil
+}
+
+// resolveInputs expands args (files, directories, globs) into a list of file paths.
+// Returns nil if args is empty (meaning stdin should be used).
+func resolveInputs(args []string) []string {
+	if len(args) == 0 {
+		return nil
 	}
 
 	var files []string
@@ -208,24 +326,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "No files found.\n")
 		os.Exit(1)
 	}
-
-	multiFile := len(files) > 1
-
-	for _, path := range files {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading %s: %v\n", path, err)
-			continue
-		}
-		prefix := ""
-		if multiFile {
-			prefix = path
-		}
-		if err := printMetricsWithFormat(outputFormat, os.Stdout, string(data), prefix, *metric, model, cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			continue
-		}
-	}
+	return files
 }
 
 func handleConfig(args []string) {

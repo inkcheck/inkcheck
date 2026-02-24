@@ -271,3 +271,140 @@ func TestCLI_Help(t *testing.T) {
 		t.Error("expected help to show 'Available metrics' section")
 	}
 }
+
+// TestCLI_AnalyseSubcommand tests the explicit "analyse" subcommand.
+func TestCLI_AnalyseSubcommand(t *testing.T) {
+	binary := buildCLI(t)
+	testFile := filepath.Join("..", "..", "testdata", "argumentative_essay.md")
+
+	cmd := exec.Command(binary, "analyse", "-m", "paragraph_variance", testFile)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("CLI analyse failed: %v\n%s", err, output)
+	}
+
+	if !strings.Contains(string(output), "paragraph_variance") {
+		t.Errorf("expected output to contain metric name, got: %s", output)
+	}
+}
+
+// TestCLI_AnalyzeSpelling tests the US spelling "analyze" also works.
+func TestCLI_AnalyzeSpelling(t *testing.T) {
+	binary := buildCLI(t)
+	testFile := filepath.Join("..", "..", "testdata", "argumentative_essay.md")
+
+	cmd := exec.Command(binary, "analyze", "-m", "paragraph_variance", testFile)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("CLI analyze failed: %v\n%s", err, output)
+	}
+
+	if !strings.Contains(string(output), "paragraph_variance") {
+		t.Errorf("expected output to contain metric name, got: %s", output)
+	}
+}
+
+// TestCLI_SignatureText tests the signature subcommand with text output.
+func TestCLI_SignatureText(t *testing.T) {
+	binary := buildCLI(t)
+	testFile := filepath.Join("..", "..", "testdata", "argumentative_essay.md")
+
+	cmd := exec.Command(binary, "signature", testFile)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("CLI signature failed: %v\n%s", err, output)
+	}
+
+	outputStr := string(output)
+
+	// Should have 10 bullet points
+	bulletCount := strings.Count(outputStr, "•")
+	if bulletCount != 10 {
+		t.Errorf("expected 10 bullet points, got %d\noutput: %s", bulletCount, outputStr)
+	}
+
+	// Should contain all axis names
+	for _, name := range []string{"Formality", "Confidence", "Rhythm", "Economy", "Precision",
+		"Coherence", "Vocabulary", "Stance", "Emotional Tone", "Temporal Orientation"} {
+		if !strings.Contains(outputStr, name) {
+			t.Errorf("expected output to contain %q", name)
+		}
+	}
+}
+
+// TestCLI_SignatureJSON tests the signature subcommand with JSON output.
+func TestCLI_SignatureJSON(t *testing.T) {
+	binary := buildCLI(t)
+	testFile := filepath.Join("..", "..", "testdata", "technical_writing.md")
+
+	cmd := exec.Command(binary, "signature", "-format", "json", testFile)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("CLI signature JSON failed: %v\n%s", err, output)
+	}
+
+	// Parse JSON to verify it's valid
+	var result map[string]interface{}
+	if err := json.Unmarshal(output, &result); err != nil {
+		t.Fatalf("failed to parse signature JSON: %v\noutput: %s", err, output)
+	}
+
+	// Should have version, document, and signature fields
+	if _, ok := result["version"]; !ok {
+		t.Error("JSON should have 'version' field")
+	}
+	if _, ok := result["document"]; !ok {
+		t.Error("JSON should have 'document' field")
+	}
+	if _, ok := result["signature"]; !ok {
+		t.Error("JSON should have 'signature' field")
+	}
+}
+
+// TestCLI_SignatureStdin tests the signature subcommand reading from stdin.
+func TestCLI_SignatureStdin(t *testing.T) {
+	binary := buildCLI(t)
+	testText := "This is a test sentence. This is another test sentence. A third one follows."
+
+	cmd := exec.Command(binary, "signature")
+	cmd.Stdin = strings.NewReader(testText)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("CLI signature stdin failed: %v\n%s", err, output)
+	}
+
+	bulletCount := strings.Count(string(output), "•")
+	if bulletCount != 10 {
+		t.Errorf("expected 10 bullet points, got %d", bulletCount)
+	}
+}
+
+// TestCLI_SignatureMultipleFiles tests signature with multiple files.
+func TestCLI_SignatureMultipleFiles(t *testing.T) {
+	binary := buildCLI(t)
+	file1 := filepath.Join("..", "..", "testdata", "argumentative_essay.md")
+	file2 := filepath.Join("..", "..", "testdata", "narrative_prose.md")
+
+	cmd := exec.Command(binary, "signature", file1, file2)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("CLI signature multiple files failed: %v\n%s", err, output)
+	}
+
+	outputStr := string(output)
+
+	// Should contain both filenames as headers
+	if !strings.Contains(outputStr, "argumentative_essay.md") {
+		t.Error("expected output to contain first filename")
+	}
+	if !strings.Contains(outputStr, "narrative_prose.md") {
+		t.Error("expected output to contain second filename")
+	}
+
+	// Should have 20 bullet points (10 per file)
+	bulletCount := strings.Count(outputStr, "•")
+	if bulletCount != 20 {
+		t.Errorf("expected 20 bullet points for 2 files, got %d", bulletCount)
+	}
+}

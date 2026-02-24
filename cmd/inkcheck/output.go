@@ -9,6 +9,8 @@ import (
 	"github.com/inkcheck/reading"
 	"github.com/inkcheck/rhetoric"
 	"github.com/inkcheck/semantic"
+	"github.com/inkcheck/shared"
+	"github.com/inkcheck/signature"
 	"github.com/inkcheck/structure"
 )
 
@@ -140,6 +142,124 @@ func printMetricsWithFormat(format OutputFormat, w io.Writer, text, prefix, metr
 			}
 		} else {
 			printMetric(w, text, prefix, metric, model, cfg)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unknown output format: %s", format)
+	}
+}
+
+// computeSignature runs all analyzers needed for the signature and returns
+// the computed Signature along with DocumentInfo.
+func computeSignature(text string, model *semantic.ModelManager, cfg config.Config) (signature.Signature, signature.DocumentInfo) {
+	prose := shared.ExtractProseText(text)
+	words := shared.ListWords(prose)
+	sentences := shared.SplitSentences(prose)
+	paragraphs := shared.SplitParagraphs(text)
+
+	wordCount := len(words)
+	sentenceCount := len(sentences)
+	paragraphCount := len(paragraphs)
+
+	// Structure
+	sentLenCV := structure.SentenceLengthVariance(text)
+	paraLenCV := structure.ParagraphVariance(text)
+	opener := structure.SentenceOpenerDiversity(cfg, text)
+	sentType := structure.SentenceTypeDistribution(text)
+
+	// Rhetoric
+	voice := rhetoric.VoiceConsistency(text)
+	hedging := rhetoric.HedgingAnalysis(text)
+	specificity := rhetoric.SpecificityScore(text)
+	claimSupport := rhetoric.ClaimSupportRatio(text)
+	argStructure := rhetoric.ArgumentStructureCoherence(text)
+	stance := rhetoric.StanceAnalysis(text)
+	contraction := rhetoric.ContractionRate(text)
+	temporal := rhetoric.TemporalOrientation(text)
+	economy := rhetoric.EconomyAnalysis(text)
+	vocab := rhetoric.VocabSophisticationDistribution(cfg, text)
+	transitions := rhetoric.TransitionWordDensity(cfg, text)
+
+	// Semantic (optional)
+	var topicCoherence semantic.TopicCoherenceResult
+	var redundancy semantic.RedundancyResult
+	var emotionalTone semantic.EmotionalToneResult
+	if model != nil {
+		topicCoherence = semantic.TopicCoherence(cfg, model, text)
+		redundancy = semantic.RedundancyDetection(cfg, model, text)
+		emotionalTone = semantic.EmotionalTone(cfg, model, text)
+	}
+
+	// Readability
+	readResult := reading.ReadabilityAnalysis(cfg, text)
+
+	raw := signature.RawMetrics{
+		SentenceLengthCV:      sentLenCV,
+		ParagraphLengthCV:     paraLenCV,
+		OpenerDiversity:       opener,
+		SentenceType:          sentType,
+		VoiceConsistency:      voice,
+		Hedging:               hedging,
+		Specificity:           specificity,
+		ClaimSupport:          claimSupport,
+		ArgumentStructure:     argStructure,
+		Stance:                stance,
+		Contraction:           contraction,
+		Temporal:              temporal,
+		Economy:               economy,
+		VocabSophistication:   vocab,
+		TransitionWordDensity: transitions,
+		TopicCoherence:        topicCoherence,
+		Redundancy:            redundancy,
+		EmotionalTone:         emotionalTone,
+		WordCount:             wordCount,
+		SentenceCount:         sentenceCount,
+		ParagraphCount:        paragraphCount,
+	}
+
+	sig := signature.Compute(raw)
+	doc := signature.DocumentInfo{
+		WordCount:          wordCount,
+		SentenceCount:      sentenceCount,
+		ParagraphCount:     paragraphCount,
+		ReadabilityFormula: readResult.Formula,
+		ReadabilityScore:   readResult.Score,
+		ReadabilityGrade:   readResult.Grade,
+	}
+
+	return sig, doc
+}
+
+// axisLabels maps axis names to human-readable display labels with spectrum.
+var axisLabels = [signature.AxisCount]string{
+	"Formality           (casual ↔ formal)",
+	"Confidence          (hedged ↔ decisive)",
+	"Rhythm              (uniform ↔ varied)",
+	"Economy             (expansive ↔ spare)",
+	"Precision           (vague ↔ specific)",
+	"Coherence           (fragmented ↔ structured)",
+	"Vocabulary          (plain ↔ rich)",
+	"Stance              (impersonal ↔ reader-centric)",
+	"Emotional Tone      (neutral ↔ warm)",
+	"Temporal Orientation (retrospective ↔ prospective)",
+}
+
+// printSignatureWithFormat outputs the signature in the specified format.
+func printSignatureWithFormat(format OutputFormat, w io.Writer, text, prefix string, model *semantic.ModelManager, cfg config.Config) error {
+	sig, doc := computeSignature(text, model, cfg)
+
+	switch format {
+	case FormatJSON:
+		out := signature.ToOutput(sig, doc)
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(out)
+	case FormatText:
+		if prefix != "" {
+			fmt.Fprintf(w, "%s\n", prefix)
+		}
+		for i, axis := range sig.Axes {
+			fmt.Fprintf(w, "  • %s  %.2f\n", axisLabels[i], axis.Score)
 		}
 		return nil
 	default:
