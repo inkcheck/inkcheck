@@ -17,8 +17,10 @@ type ClaimSupportResult struct {
 
 var claimSignals = []string{
 	"should", "must", "need to", "it is essential", "it is important",
-	"we believe", "i believe", "i argue", "we argue", "the key",
-	"the main", "clearly", "obviously", "undoubtedly",
+	"we believe", "i believe", "i argue", "i would argue", "we argue",
+	"the key", "the main", "clearly", "obviously", "undoubtedly",
+	"i think", "in my opinion", "in my view", "the most compelling",
+	"what sets it apart", "the real question", "it is about",
 }
 
 var supportSignals = []string{
@@ -26,6 +28,9 @@ var supportSignals = []string{
 	"studies show", "data shows", "evidence suggests", "as shown",
 	"demonstrated by", "specifically", "in particular", "such as",
 	"the study", "the research", "percent", "%",
+	"consider ", "take the case", "you can see", "you can read",
+	"here are", "here is a", "a similar pattern",
+	"describes in", "in his book", "in her book", "on wikipedia",
 }
 
 // ClaimSupportRatio classifies sentences as claims, support, or neutral

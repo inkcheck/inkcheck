@@ -17,21 +17,29 @@ type ArgumentStructureResult struct {
 }
 
 var thesisMarkers = []string{
-	"i argue", "we argue", "this paper", "this essay", "the thesis",
-	"the purpose", "the aim", "i believe", "we believe",
+	"i argue", "i would argue", "we argue", "this paper", "this essay",
+	"the thesis", "the purpose", "the aim", "i believe", "we believe",
 	"the central", "the main argument", "in this article",
+	"i think", "in my opinion", "in my view", "my view is",
+	"the point is", "the idea is", "what sets it apart",
+	"the key insight", "the real question",
 }
 
 var evidenceMarkers = []string{
 	"for example", "for instance", "according to", "research shows",
 	"studies indicate", "data suggests", "evidence shows",
 	"as demonstrated", "the findings", "results show",
+	"consider ", "take the case", "look at ", "a similar pattern",
+	"you can see", "you can read", "here are", "here is",
+	"when ", "in the case of",
 }
 
 var conclusionMarkers = []string{
 	"in conclusion", "to summarize", "in summary", "therefore",
 	"thus", "overall", "to conclude", "in closing",
 	"taken together", "all things considered",
+	"once we", "there will be no", "there is no turning back",
+	"the bottom line", "ultimately", "in the end",
 }
 
 // ArgumentStructureCoherence checks whether the text follows a standard
