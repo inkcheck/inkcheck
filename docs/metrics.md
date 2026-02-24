@@ -1,5 +1,28 @@
 # Metrics Reference
 
+## Style Signature (10 Axes)
+
+The `signature` package computes a 10-dimensional style signature by
+normalizing and compositing the metrics below into axis scores in [0, 1].
+
+| # | Axis | Spectrum | Sub-metrics |
+|---|------|----------|-------------|
+| 1 | Formality | Casual to Formal | formal word ratio, passive voice ratio, contraction rate (inv) |
+| 2 | Confidence | Hedged to Decisive | hedging density (inv), modal verb density, active voice ratio |
+| 3 | Rhythm | Uniform to Varied | sentence length CV, paragraph length CV, opener diversity, sentence type entropy |
+| 4 | Economy | Expansive to Spare | avg sentence length (inv), wordy phrase density (inv), words/clause (inv), syntactic complexity (inv) |
+| 5 | Precision | Vague to Specific | specificity score, vague word density (inv), redundancy score (inv) |
+| 6 | Coherence | Fragmented to Structured | transition density, topic coherence, argument structure, claim-support ratio |
+| 7 | Vocabulary | Plain to Rich | MATTR, lexical density, low-freq word ratio |
+| 8 | Stance | Impersonal to Reader-centric | reader-centricity score |
+| 9 | Emotional Tone | Neutral to Warm | positive affect ratio, emotional intensity, empathy markers, arousal level |
+| 10 | Temporal | Retrospective to Prospective | future modal density, past tense ratio (inv), evidential density (inv), aspiration density |
+
+Each sub-metric is normalized using linear, sqrt, or log curves with
+expert-defined bounds, then composited with equal weights (configurable).
+See `signature/axes.go` for exact bounds and curves.
+
+
 ## Structure Metrics
 
 These metrics measure the physical shape and rhythm of writing, including

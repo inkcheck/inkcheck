@@ -7,10 +7,15 @@ argument structure, and topic coherence.
 ## Features
 
 - **27 metrics** across three categories: structural, rhetorical, and semantic
+- **10-axis style signature** (formality, confidence, rhythm, economy, precision,
+  coherence, vocabulary, stance, emotional tone, temporal orientation) with
+  normalized [0, 1] scores and corpus comparison
 - **Heuristic-first** approach using POS tagging, keyword matching, and
   statistical variance — no ML models required for 22 of 27 metrics
 - **Word2vec semantic analysis** for topic coherence, redundancy,
   information novelty, and emotional tone (5 metrics)
+- **Brand voice matching** via corpus centroid comparison with per-axis deltas
+  and consistency scoring
 - **Library and CLI** for use in Go programs or from the command line
 - **Markdown-aware** text extraction strips headings, code, lists, and other
   non-prose elements before analysis
@@ -94,6 +99,35 @@ if err != nil {
 }
 result := inkcheck.AnalyzeAll(cfg, text, model)
 fmt.Printf("Topic coherence: %.4f\n", result.Semantic.TopicCoherence.MeanSimilarity)
+```
+
+Compute a 10-axis style signature:
+
+```go
+import "github.com/inkcheck/signature"
+
+raw := signature.RawMetrics{
+    SentenceLengthCV:  result.Structure.SentenceLengthVariance,
+    ParagraphLengthCV: result.Structure.ParagraphVariance,
+    OpenerDiversity:   result.Structure.SentenceOpenerDiversity,
+    SentenceType:      result.Structure.SentenceTypeDistribution,
+    VoiceConsistency:  result.Rhetoric.VoiceConsistency,
+    Hedging:           result.Rhetoric.Hedging,
+    Specificity:       result.Rhetoric.Specificity,
+    ClaimSupport:      result.Rhetoric.ClaimSupport,
+    ArgumentStructure: result.Rhetoric.ArgumentStructure,
+    Stance:            result.Rhetoric.Stance,
+    Contraction:       result.Rhetoric.Contraction,
+    Temporal:          result.Rhetoric.Temporal,
+    Economy:           result.Rhetoric.Economy,
+    VocabSophistication: result.Rhetoric.VocabSophistication,
+    TransitionWordDensity: result.Rhetoric.TransitionWordDensity,
+    WordCount:         847,
+    SentenceCount:     52,
+    ParagraphCount:    9,
+}
+sig := signature.Compute(raw)
+fmt.Printf("Formality: %.2f\n", sig.Axes[signature.Formality].Score)
 ```
 
 Or use sub-packages directly for individual metrics:

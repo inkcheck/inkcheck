@@ -638,3 +638,139 @@ type EmotionalToneResult struct {
 Estimates valence and arousal using the Russell circumplex model. Projects
 content-word embeddings onto axes defined by positive/negative seed-word
 centroids. Returns zero result if the model is nil or no words matched.
+
+## signature
+
+Produces a 10-dimensional style signature from analyzer results.
+
+```go
+import "github.com/inkcheck/signature"
+```
+
+### Compute
+
+```go
+func Compute(m RawMetrics) Signature
+```
+
+Produces a `Signature` from raw metrics. Normalizes each sub-metric using
+configured bounds and curves, then composites into axis scores.
+
+```go
+type Signature struct {
+    Axes [10]AxisResult
+}
+
+type AxisResult struct {
+    Score      float64                    // composite axis score [0, 1]
+    SubMetrics map[string]SubMetricValue  // per sub-metric breakdown
+}
+
+type SubMetricValue struct {
+    Raw        float64
+    Normalized float64
+    Weight     float64
+}
+```
+
+### RawMetrics
+
+```go
+type RawMetrics struct {
+    // Structure
+    SentenceLengthCV  float64
+    ParagraphLengthCV float64
+    OpenerDiversity   structure.SentenceOpenerDiversityResult
+    SentenceType      structure.SentenceTypeResult
+
+    // Rhetoric
+    VoiceConsistency      rhetoric.VoiceConsistencyResult
+    Hedging               rhetoric.HedgingResult
+    Specificity           rhetoric.SpecificityResult
+    ClaimSupport          rhetoric.ClaimSupportResult
+    ArgumentStructure     rhetoric.ArgumentStructureResult
+    Stance                rhetoric.StanceResult
+    Contraction           rhetoric.ContractionResult
+    Temporal              rhetoric.TemporalResult
+    Economy               rhetoric.EconomyResult
+    VocabSophistication   rhetoric.VocabSophisticationResult
+    TransitionWordDensity rhetoric.TransitionResult
+
+    // Semantic (optional)
+    TopicCoherence semantic.TopicCoherenceResult
+    Redundancy     semantic.RedundancyResult
+    EmotionalTone  semantic.EmotionalToneResult
+
+    // Document-level
+    WordCount, SentenceCount, ParagraphCount int
+}
+```
+
+### Corpus
+
+```go
+type Corpus struct {
+    ID         string
+    Signatures []Signature
+}
+
+func (c *Corpus) Centroid() [10]float64
+func (c *Corpus) StdDev() [10]float64
+func (c *Corpus) ConsistencyScore() float64
+```
+
+### Compare
+
+```go
+func Compare(doc Signature, corpus *Corpus) Comparison
+```
+
+Compares a document signature against a corpus centroid, producing per-axis
+deltas, within-band flags, and cosine similarity.
+
+```go
+type Comparison struct {
+    CorpusID        string
+    CorpusSize      int
+    SimilarityScore float64
+    Axes            [10]AxisComparison
+}
+
+type AxisComparison struct {
+    DocumentScore  float64
+    CentroidScore  float64
+    CentroidStdDev float64
+    Delta          float64
+    WithinBand     bool
+}
+```
+
+### JSON Output
+
+```go
+func ToOutput(sig Signature, doc DocumentInfo) SignatureOutput
+func ToOutputWithComparison(sig Signature, doc DocumentInfo, comp Comparison) SignatureOutput
+```
+
+Produces JSON output matching `signature.schema.json`. The `SignatureOutput`
+type serializes to the Inkwell schema format with version, document metadata,
+10-axis signature, and optional corpus comparison.
+
+### CosineSimilarity
+
+```go
+func CosineSimilarity(a, b [10]float64) float64
+```
+
+Computes cosine similarity between two signature vectors.
+
+### Constants
+
+```go
+const AxisCount = 10
+
+var AxisNames = [10]string{
+    "formality", "confidence", "rhythm", "economy", "precision",
+    "coherence", "vocabulary", "stance", "emotional_tone", "temporal_orientation",
+}
+```

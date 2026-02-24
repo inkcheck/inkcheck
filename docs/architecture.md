@@ -45,6 +45,12 @@ inkcheck/
 │   ├── redundancy_detection.go
 │   ├── information_novelty_curve.go
 │   └── emotional_tone.go
+├── signature/
+│   ├── normalize.go             # Normalization functions (linear, sqrt, log curves)
+│   ├── axes.go                  # 10 axis definitions with sub-metric bounds and weights
+│   ├── signature.go             # Signature type and computation from analyzer results
+│   ├── corpus.go                # Corpus centroid, comparison, consistency score
+│   └── output.go                # JSON output types matching signature.schema.json
 ├── go.mod
 └── go.sum
 ```
@@ -103,6 +109,16 @@ inkcheck/
 | `redundancy_detection.go` | Non-adjacent paragraph pair similarity above threshold |
 | `information_novelty_curve.go` | Per-paragraph novelty relative to all prior paragraphs |
 | `emotional_tone.go` | Valence and arousal via seed-word centroid projection (Russell circumplex) |
+
+### signature/
+
+| File | Purpose |
+|------|---------|
+| `normalize.go` | Range normalization with linear, sqrt, and log curves; composite scoring |
+| `axes.go` | 10 radar axis definitions with sub-metric bounds, curves, and weights |
+| `signature.go` | `Signature` type, `Compute` from raw metrics, `CosineSimilarity` |
+| `corpus.go` | `Corpus` type with centroid, stddev, consistency score, and comparison |
+| `output.go` | JSON-serializable output types matching `signature.schema.json` |
 
 ## Dependencies
 
@@ -171,4 +187,10 @@ markdown text
   │
   └─► semantic.*()                   (word2vec embeddings)
         └─► similarities, drift rates, novelty scores
+
+  ──► signature.Compute(RawMetrics)  (normalization + compositing)
+        └─► 10-axis Signature vector [0–1]
+
+  ──► signature.Compare(doc, corpus) (centroid + delta)
+        └─► per-axis delta, within-band, cosine similarity
 ```
