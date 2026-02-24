@@ -5,6 +5,7 @@ import (
 
 	"github.com/inkcheck/config"
 	"github.com/inkcheck/shared"
+	"github.com/inkcheck/wordlist"
 )
 
 // AudienceAwarenessResult holds audience engagement analysis.
@@ -59,7 +60,7 @@ func AudienceAwareness(cfg config.Config, text string) AudienceAwarenessResult {
 		if cleaned == "" {
 			continue
 		}
-		rank, found := wordFrequencyRank[cleaned]
+		rank, found := wordlist.FrequencyRank()[cleaned]
 		if !found || rank > cfg.JargonRankThreshold {
 			jargonCount++
 		}

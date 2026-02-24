@@ -30,7 +30,7 @@ The word embedding model is optional and only required for semantic metrics. The
 
 ### Google 10,000 English Words
 
-Word frequency data used in vocabulary sophistication analysis (embedded in `rhetoric/wordlist.go`).
+Word frequency data used in vocabulary sophistication analysis (embedded from `wordlist/google-10000-english.txt`).
 
 - **Source**: https://github.com/first20hours/google-10000-english
 - **Derived from**: Google Trillion Word Corpus

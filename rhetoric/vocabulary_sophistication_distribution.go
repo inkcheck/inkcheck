@@ -5,6 +5,7 @@ import (
 
 	"github.com/inkcheck/config"
 	"github.com/inkcheck/shared"
+	"github.com/inkcheck/wordlist"
 )
 
 type VocabSophisticationResult struct {
@@ -90,7 +91,7 @@ func classifyWord(word string) int {
 	if lower == "" {
 		return 0
 	}
-	rank, found := wordFrequencyRank[lower]
+	rank, found := wordlist.FrequencyRank()[lower]
 	if !found {
 		return 4
 	}
