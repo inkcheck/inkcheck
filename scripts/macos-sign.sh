@@ -3,7 +3,7 @@
 # Called from the goreleaser build post hook: macos-sign.sh <os> <path> <snapshot>
 #
 # One-time setup (shared with inkcheck/ink):
-#   xcrun notarytool store-credentials ink-notary \
+#   xcrun notarytool store-credentials inkcheck-notary \
 #     --apple-id <apple-id> --team-id F34DLG5JYF --password <app-specific-password>
 set -eu
 
@@ -15,7 +15,7 @@ snapshot=$3
 [ "$snapshot" = true ] && exit 0
 
 identity=${MACOS_SIGN_IDENTITY:-Developer ID Application}
-profile=${MACOS_NOTARY_PROFILE:-ink-notary}
+profile=${MACOS_NOTARY_PROFILE:-inkcheck-notary}
 
 codesign --force --timestamp --options runtime --sign "$identity" "$path"
 codesign --verify --strict "$path"
